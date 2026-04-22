@@ -1,0 +1,282 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Figtree:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+/* ============================================================
+   OBRALIA — DESIGN TOKENS (dark industrial, amber accent)
+   ============================================================ */
+
+:root {
+  /* Surfaces */
+  --ob-bg:           oklch(0.095 0.008 52);
+  --ob-surface-1:    oklch(0.13  0.010 52);
+  --ob-surface-2:    oklch(0.175 0.012 52);
+  --ob-surface-3:    oklch(0.22  0.016 52);
+
+  /* Borders */
+  --ob-border:       oklch(0.27  0.017 52);
+  --ob-border-hi:    oklch(0.34  0.020 52);
+
+  /* Text */
+  --ob-text-1:       oklch(0.93  0.007 52);
+  --ob-text-2:       oklch(0.64  0.015 52);
+  --ob-text-3:       oklch(0.46  0.012 52);
+
+  /* Accent — warm amber/construction orange */
+  --ob-accent:       oklch(0.72  0.165 52);
+  --ob-accent-hi:    oklch(0.80  0.145 52);
+  --ob-accent-lo:    oklch(0.55  0.120 52);
+  --ob-accent-bg:    oklch(0.15  0.035 52);
+
+  /* Semantic */
+  --ob-danger:       oklch(0.60  0.180 25);
+  --ob-danger-bg:    oklch(0.14  0.040 25);
+  --ob-success:      oklch(0.65  0.160 145);
+  --ob-success-bg:   oklch(0.13  0.040 145);
+  --ob-warning:      oklch(0.76  0.140 72);
+
+  /* Typography */
+  --ob-font-display: 'Barlow Condensed', system-ui, sans-serif;
+  --ob-font-body:    'Figtree', system-ui, sans-serif;
+
+  /* Radii */
+  --ob-r-sm: 4px;
+  --ob-r-md: 8px;
+  --ob-r-lg: 12px;
+
+  /* Z-index */
+  --ob-z-canvas:  10;
+  --ob-z-card:    20;
+  --ob-z-overlay: 30;
+  --ob-z-nav:     50;
+
+  /* Shadcn overrides — dark by default */
+  --background:          oklch(0.095 0.008 52);
+  --foreground:          oklch(0.93  0.007 52);
+  --card:                oklch(0.13  0.010 52);
+  --card-foreground:     oklch(0.93  0.007 52);
+  --popover:             oklch(0.13  0.010 52);
+  --popover-foreground:  oklch(0.93  0.007 52);
+  --primary:             oklch(0.72  0.165 52);
+  --primary-foreground:  oklch(0.10  0.008 52);
+  --secondary:           oklch(0.175 0.012 52);
+  --secondary-foreground:oklch(0.93  0.007 52);
+  --muted:               oklch(0.175 0.012 52);
+  --muted-foreground:    oklch(0.64  0.015 52);
+  --accent:              oklch(0.22  0.016 52);
+  --accent-foreground:   oklch(0.93  0.007 52);
+  --destructive:         oklch(0.60  0.180 25);
+  --border:              oklch(0.27  0.017 52);
+  --input:               oklch(0.22  0.016 52);
+  --ring:                oklch(0.72  0.165 52);
+  --radius:              0.5rem;
+}
+
+[data-theme="light"] {
+  --ob-bg:           oklch(0.97  0.005 52);
+  --ob-surface-1:    oklch(1.00  0.000 52);
+  --ob-surface-2:    oklch(0.95  0.006 52);
+  --ob-surface-3:    oklch(0.90  0.008 52);
+  --ob-border:       oklch(0.83  0.012 52);
+  --ob-border-hi:    oklch(0.74  0.018 52);
+  --ob-text-1:       oklch(0.12  0.012 52);
+  --ob-text-2:       oklch(0.38  0.018 52);
+  --ob-text-3:       oklch(0.56  0.015 52);
+  --ob-accent:       oklch(0.56  0.175 52);
+  --ob-accent-hi:    oklch(0.48  0.190 52);
+  --ob-accent-lo:    oklch(0.68  0.130 52);
+  --ob-accent-bg:    oklch(0.94  0.025 52);
+  --background:      oklch(0.97  0.005 52);
+  --foreground:      oklch(0.12  0.012 52);
+  --card:            oklch(1.00  0.000 52);
+  --card-foreground: oklch(0.12  0.012 52);
+  --border:          oklch(0.83  0.012 52);
+  --input:           oklch(0.90  0.008 52);
+  --primary:         oklch(0.56  0.175 52);
+  --primary-foreground: oklch(0.98 0.003 52);
+  --muted:           oklch(0.95  0.006 52);
+  --muted-foreground:oklch(0.50  0.018 52);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: auto;
+}
+
+body {
+  background-color: var(--ob-bg);
+  color: var(--ob-text-1);
+  font-family: var(--ob-font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Lenis */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth        { scroll-behavior: auto !important; }
+.lenis.lenis-stopped       { overflow: hidden; }
+
+/* Selection */
+::selection {
+  background-color: color-mix(in oklch, var(--ob-accent) 28%, transparent);
+  color: var(--ob-text-1);
+}
+
+/* Focus */
+:focus-visible { outline: 2px solid var(--ob-accent); outline-offset: 3px; }
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 5px; }
+::-webkit-scrollbar-track { background: var(--ob-bg); }
+::-webkit-scrollbar-thumb { background: var(--ob-surface-3); border-radius: 3px; }
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ob-font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--ob-text-1);
+}
+
+.ob-display {
+  font-family: var(--ob-font-display);
+  font-size: clamp(3.5rem, 10vw, 7.5rem);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.ob-h1 {
+  font-family: var(--ob-font-display);
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1.0;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.ob-h2 {
+  font-family: var(--ob-font-display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.ob-eyebrow {
+  font-family: var(--ob-font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ob-accent);
+}
+
+.ob-body-lg {
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
+  line-height: 1.72;
+  color: var(--ob-text-2);
+  max-width: 66ch;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+
+.ob-container {
+  width: 100%;
+  max-width: 1320px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 5vw, 3rem);
+}
+
+.ob-section {
+  padding-block: clamp(5rem, 11vw, 9rem);
+}
+
+/* ============================================================
+   COMPONENTS
+   ============================================================ */
+
+/* Buttons */
+.ob-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--ob-font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.8125rem 1.625rem;
+  border-radius: var(--ob-r-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ob-btn:active { transform: translateY(1px); }
+.ob-btn-primary  { background-color: var(--ob-accent); color: oklch(0.095 0.008 52); border-color: var(--ob-accent); }
+.ob-btn-primary:hover { background-color: var(--ob-accent-hi); border-color: var(--ob-accent-hi); }
+.ob-btn-ghost    { background: transparent; color: var(--ob-text-1); border-color: var(--ob-border); }
+.ob-btn-ghost:hover { background-color: var(--ob-surface-2); border-color: var(--ob-border-hi); }
+.ob-btn-lg       { font-size: 1rem; padding: 1.0625rem 2.125rem; }
+
+/* Tag */
+.ob-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.675rem;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--ob-r-sm);
+  border: 1px solid currentColor;
+}
+.ob-tag-accent  { color: var(--ob-accent);   background-color: var(--ob-accent-bg);  border-color: color-mix(in oklch, var(--ob-accent) 35%, transparent); }
+.ob-tag-success { color: var(--ob-success);  background-color: var(--ob-success-bg); border-color: color-mix(in oklch, var(--ob-success) 35%, transparent); }
+.ob-tag-danger  { color: var(--ob-danger);   background-color: var(--ob-danger-bg);  border-color: color-mix(in oklch, var(--ob-danger) 35%, transparent); }
+
+/* Card */
+.ob-card {
+  background-color: var(--ob-surface-1);
+  border: 1px solid var(--ob-border);
+  border-radius: var(--ob-r-lg);
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes ob-fade-up  { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ob-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ob-ticker   { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes ob-glow-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+.ob-animate-fade-up { animation: ob-fade-up  0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.ob-animate-fade-in { animation: ob-fade-in  0.4s ease both; }
+.ob-animate-ticker  { animation: ob-ticker   35s linear infinite; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
