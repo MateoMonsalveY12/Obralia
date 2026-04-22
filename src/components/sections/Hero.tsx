@@ -16,7 +16,10 @@ export default function Hero() {
   const tickingRef = useRef(false)
   const [framesLoaded, setFramesLoaded] = useState(false)
   const [loadProgress, setLoadProgress] = useState(0)
-  const [useImageFallback, setUseImageFallback] = useState(false)
+  // Default to image fallback so NextImage with priority is in the initial render,
+  // enabling the browser to preload hero-bg.jpg immediately (critical for LCP).
+  // Only switch to canvas when all frames successfully load.
+  const [useImageFallback, setUseImageFallback] = useState(true)
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -26,18 +29,11 @@ export default function Hero() {
   const heroOpacity = useTransform(scrollYProgress, [0.7, 1.0], [1, 0])
   const textY = useTransform(scrollYProgress, [0, 0.4], [0, -60])
 
-  // Try to load frames; fall back to static image if unavailable
+  // Try to load frames; only switch to canvas when all frames are available
   useEffect(() => {
     let loaded = 0
     let failed = 0
     const frames: HTMLImageElement[] = []
-
-    const checkFallback = () => {
-      if (failed > FRAME_COUNT * 0.5) {
-        setUseImageFallback(true)
-        setFramesLoaded(true)
-      }
-    }
 
     for (let i = 1; i <= FRAME_COUNT; i++) {
       const img = new Image()
@@ -46,13 +42,24 @@ export default function Hero() {
       img.onload = () => {
         frames[i - 1] = img
         loaded++
-        setLoadProgress(Math.round((loaded / FRAME_COUNT) * 100))
-        if (loaded === FRAME_COUNT) setFramesLoaded(true)
+        setLoadProgress(Math.round(((loaded + failed) / FRAME_COUNT) * 100))
+        if (loaded + failed === FRAME_COUNT) {
+          if (failed === 0) {
+            // All frames available — switch to canvas mode
+            framesRef.current = frames
+            setUseImageFallback(false)
+            setFramesLoaded(true)
+          }
+          // else: stay in image fallback mode (already true)
+        }
       }
       img.onerror = () => {
         failed++
-        loaded++
-        checkFallback()
+        // If any frame fails, stay in fallback and stop waiting
+        if (failed === 1) {
+          setFramesLoaded(true) // no canvas loading to show
+        }
+        loaded + failed === FRAME_COUNT && setLoadProgress(100)
       }
     }
     framesRef.current = frames
