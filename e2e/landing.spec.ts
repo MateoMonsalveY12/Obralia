@@ -4,8 +4,6 @@ const BASE = 'https://obraliaops.site'
 
 test.describe('Obralia Landing — Core', () => {
   test('landing carga correctamente y LCP < 2.5s', async ({ page }) => {
-    const lcpValues: number[] = []
-
     // Listen for LCP via PerformanceObserver
     await page.addInitScript(() => {
       const obs = new PerformanceObserver((list) => {
@@ -148,9 +146,6 @@ test.describe('Obralia Landing — Secciones', () => {
     const pricingSection = page.locator('#precios')
     await pricingSection.scrollIntoViewIfNeeded()
     await page.waitForTimeout(500)
-
-    // Get initial price text (monthly)
-    const priceText = await page.locator('text=450').first().textContent()
 
     // Click annual toggle
     const toggle = page.locator('[role="switch"]')

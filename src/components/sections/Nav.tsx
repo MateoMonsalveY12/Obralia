@@ -14,12 +14,12 @@ const links = [
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark'
+    return (localStorage.getItem('obralia-theme') as 'dark' | 'light') ?? 'dark'
+  })
 
   useEffect(() => {
-    const stored = localStorage.getItem('obralia-theme') as 'dark' | 'light' | null
-    if (stored) setTheme(stored)
-
     const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)

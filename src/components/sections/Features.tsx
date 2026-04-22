@@ -112,18 +112,8 @@ export default function Features() {
             overflow: 'hidden',
           }}
         >
-          {features.map((f, i) => {
+          {features.map((f) => {
             const Icon = f.icon
-            const gridProps: Record<string, string> = {
-              wide:   'grid-column: span 8',
-              normal: 'grid-column: span 4',
-              tall:   'grid-column: span 4',
-            }
-            const mobileProps: Record<string, string> = {
-              wide:   'span 12',
-              normal: 'span 6',
-              tall:   'span 12',
-            }
             return (
               <motion.article
                 key={f.title}

@@ -6,133 +6,123 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Shield, Zap, HardHat } from 'lucide-react'
 
 const FRAME_COUNT = 120
-const FRAMES_PATH = '/frames/frame_'
+const PRELOAD_MIN = 30
 
 export default function Hero() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const framesRef = useRef<HTMLImageElement[]>([])
-  const currentFrameRef = useRef(0)
-  const tickingRef = useRef(false)
-  const [framesLoaded, setFramesLoaded] = useState(false)
-  const [loadProgress, setLoadProgress] = useState(0)
-  // Default to image fallback so NextImage with priority is in the initial render,
-  // enabling the browser to preload hero-bg.jpg immediately (critical for LCP).
-  // Only switch to canvas when all frames successfully load.
-  const [useImageFallback, setUseImageFallback] = useState(true)
+  const framesRef = useRef<(HTMLImageElement | null)[]>(Array(FRAME_COUNT).fill(null))
+  const currentFrameRef = useRef(-1)
+  const rafRef = useRef<number>(0)
 
+  const [canvasReady, setCanvasReady] = useState(false)
+  const [framesFailed, setFramesFailed] = useState(false)
+  const [loadProgress, setLoadProgress] = useState(0)
+
+  // framer-motion scroll tracking — uses motion values, no React setState
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end end'],
   })
+  const heroOpacity = useTransform(scrollYProgress, [0.75, 1.0], [1, 0])
+  const textY = useTransform(scrollYProgress, [0, 0.35], [0, -50])
 
-  const heroOpacity = useTransform(scrollYProgress, [0.7, 1.0], [1, 0])
-  const textY = useTransform(scrollYProgress, [0, 0.4], [0, -60])
-
-  // Try to load frames; only switch to canvas when all frames are available
+  // Preload frames — first 30 gate the canvas; any failure falls back to image
   useEffect(() => {
     let loaded = 0
-    let failed = 0
-    const frames: HTMLImageElement[] = []
+    let anyFailed = false
+    let readyFired = false
 
-    for (let i = 1; i <= FRAME_COUNT; i++) {
+    for (let i = 0; i < FRAME_COUNT; i++) {
       const img = new Image()
-      const padded = String(i).padStart(4, '0')
-      img.src = `${FRAMES_PATH}${padded}.jpg`
+      img.src = `/frames/frame_${String(i + 1).padStart(4, '0')}.jpg`
+      framesRef.current[i] = img
+
       img.onload = () => {
-        frames[i - 1] = img
+        if (anyFailed) return
         loaded++
-        setLoadProgress(Math.round(((loaded + failed) / FRAME_COUNT) * 100))
-        if (loaded + failed === FRAME_COUNT) {
-          if (failed === 0) {
-            // All frames available — switch to canvas mode
-            framesRef.current = frames
-            setUseImageFallback(false)
-            setFramesLoaded(true)
-          }
-          // else: stay in image fallback mode (already true)
+        setLoadProgress(Math.round((loaded / FRAME_COUNT) * 100))
+        if (!readyFired && loaded >= PRELOAD_MIN) {
+          readyFired = true
+          setCanvasReady(true)
         }
       }
       img.onerror = () => {
-        failed++
-        // If any frame fails, stay in fallback and stop waiting
-        if (failed === 1) {
-          setFramesLoaded(true) // no canvas loading to show
+        if (!anyFailed) {
+          anyFailed = true
+          setFramesFailed(true)
         }
-        loaded + failed === FRAME_COUNT && setLoadProgress(100)
       }
     }
-    framesRef.current = frames
   }, [])
 
-  // Canvas sizing
+  // Canvas DPR sizing — direct DOM, capped at 2x for mobile perf
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1
-      canvas.width = window.innerWidth * dpr
-      canvas.height = window.innerHeight * dpr
-      canvas.style.width = window.innerWidth + 'px'
-      canvas.style.height = window.innerHeight + 'px'
+    const updateSize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const w = window.innerWidth
+      const h = window.innerHeight
+      canvas.width = w * dpr
+      canvas.height = h * dpr
+      canvas.style.width = w + 'px'
+      canvas.style.height = h + 'px'
     }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
+    updateSize()
+    window.addEventListener('resize', updateSize)
+    return () => window.removeEventListener('resize', updateSize)
   }, [])
 
-  // Scroll-driven frame playback
+  // RAF loop — never setState; direct canvas DOM manipulation only
   useEffect(() => {
-    if (useImageFallback || !framesLoaded) return
+    if (!canvasReady) return
     const section = sectionRef.current
     const canvas = canvasRef.current
     if (!section || !canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    function drawFrame(frameIdx: number) {
-      const img = framesRef.current[frameIdx]
-      if (!img || !canvas || !ctx) return
-      const isMobile = window.innerWidth < 768
-      const scale = isMobile ? 1.3 : 1
+    function drawFrame(idx: number) {
+      const img = framesRef.current[idx]
+      if (!img || !img.complete || img.naturalWidth === 0 || !canvas || !ctx) return
       const cw = canvas.width
       const ch = canvas.height
-      const iw = img.naturalWidth * scale
-      const ih = img.naturalHeight * scale
-      const ratio = Math.max(cw / iw, ch / ih)
-      const dw = iw * ratio
-      const dh = ih * ratio
-      const dx = (cw - dw) / 2
-      const dy = (ch - dh) / 2
+      const ratio = Math.max(cw / img.naturalWidth, ch / img.naturalHeight)
+      const dw = img.naturalWidth * ratio
+      const dh = img.naturalHeight * ratio
       ctx.clearRect(0, 0, cw, ch)
-      ctx.drawImage(img, dx, dy, dw, dh)
+      ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh)
     }
 
-    function onScroll() {
-      if (tickingRef.current) return
-      tickingRef.current = true
-      requestAnimationFrame(() => {
-        const rect = section!.getBoundingClientRect()
-        const progress = Math.max(0, Math.min(1, -rect.top / (section!.offsetHeight - window.innerHeight)))
+    drawFrame(0)
+    currentFrameRef.current = 0
+
+    function tick() {
+      const rect = section!.getBoundingClientRect()
+      const scrollable = section!.offsetHeight - window.innerHeight
+      if (scrollable > 0) {
+        const progress = Math.max(0, Math.min(1, -rect.top / scrollable))
         const frameIdx = Math.min(FRAME_COUNT - 1, Math.floor(progress * FRAME_COUNT))
         if (frameIdx !== currentFrameRef.current) {
           currentFrameRef.current = frameIdx
           drawFrame(frameIdx)
         }
-        tickingRef.current = false
-      })
+      }
+      rafRef.current = requestAnimationFrame(tick)
     }
 
-    drawFrame(0)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [framesLoaded, useImageFallback])
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [canvasReady])
+
+  const sectionHeight = framesFailed ? '100vh' : '450vh'
 
   return (
     <section
       ref={sectionRef}
-      style={{ height: useImageFallback ? '100vh' : '450vh', position: 'relative' }}
+      style={{ height: sectionHeight, position: 'relative' }}
       aria-label="Sección principal"
     >
       <motion.div
@@ -144,58 +134,69 @@ export default function Hero() {
           opacity: heroOpacity,
         }}
       >
-        {/* Background */}
-        {useImageFallback ? (
-          <NextImage
-            src="/assets/hero-bg.jpg"
-            alt="Vista aérea de obra de construcción colombiana al atardecer"
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: 'cover', objectPosition: 'center' }}
-          />
-        ) : (
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'block',
-              zIndex: 'var(--ob-z-canvas)' as unknown as number,
-            }}
-            aria-hidden="true"
-          />
-        )}
+        {/* Static hero image — priority for LCP; always mounted, crossfades to canvas */}
+        <NextImage
+          src="/assets/hero-bg.jpg"
+          alt="Vista aérea de obra de construcción colombiana al atardecer"
+          fill
+          priority
+          sizes="100vw"
+          style={{
+            objectFit: 'cover',
+            objectPosition: 'center',
+            zIndex: 5,
+            opacity: canvasReady ? 0 : 1,
+            transition: 'opacity 800ms ease',
+          }}
+        />
 
-        {/* Dark overlay */}
-        <div
+        {/* Canvas — frame-scrubbed on scroll via RAF loop */}
+        <canvas
+          ref={canvasRef}
           style={{
             position: 'absolute',
-            inset: 0,
-            background: 'linear-gradient(to bottom, oklch(0.095 0.008 52 / 0.55) 0%, oklch(0.095 0.008 52 / 0.72) 60%, oklch(0.095 0.008 52 / 0.95) 100%)',
-            zIndex: 15,
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+            zIndex: 10,
+            opacity: canvasReady ? 1 : 0,
+            transition: 'opacity 800ms ease',
           }}
           aria-hidden="true"
         />
 
-        {/* Load bar */}
-        {!framesLoaded && !useImageFallback && (
+        {/* Gradient overlay — always dark regardless of theme, hero is cinema */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(160deg, oklch(0.08 0.008 52 / 0.45) 0%, oklch(0.08 0.008 52 / 0.68) 50%, oklch(0.08 0.008 52 / 0.92) 100%)',
+            zIndex: 15,
+            pointerEvents: 'none',
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Frame preload progress bar */}
+        {!canvasReady && !framesFailed && (
           <div
             style={{
               position: 'absolute',
               bottom: 0,
               left: 0,
-              height: '2px',
+              height: '3px',
               width: `${loadProgress}%`,
               backgroundColor: 'var(--ob-accent)',
               zIndex: 60,
-              transition: 'width 200ms ease',
+              transition: 'width 300ms ease',
             }}
             aria-hidden="true"
           />
         )}
 
-        {/* Content */}
+        {/* Hero content — z-index above canvas, below nav */}
         <motion.div
           style={{ y: textY, position: 'relative', zIndex: 30, height: '100%' }}
           className="ob-container"
@@ -207,15 +208,15 @@ export default function Hero() {
               justifyContent: 'center',
               height: '100%',
               paddingTop: '68px',
-              maxWidth: '900px',
+              maxWidth: '860px',
             }}
           >
-            {/* Compliance badge */}
+            {/* Compliance badges */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}
+              style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.75rem' }}
             >
               {['Decreto 1072', 'Res. 0312', 'RETIE'].map((badge) => (
                 <span key={badge} className="ob-tag ob-tag-accent">
@@ -225,13 +226,13 @@ export default function Hero() {
               ))}
             </motion.div>
 
-            {/* Headline */}
+            {/* Headline — hardcoded light color: always over dark cinematic overlay */}
             <motion.h1
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 28 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
               className="ob-display"
-              style={{ marginBottom: '1.5rem' }}
+              style={{ marginBottom: '1.5rem', color: 'oklch(0.95 0.005 52)' }}
             >
               Toda tu obra,
               <br />
@@ -243,8 +244,13 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="ob-body-lg"
-              style={{ marginBottom: '2.5rem', maxWidth: '52ch' }}
+              style={{
+                marginBottom: '2.5rem',
+                maxWidth: '52ch',
+                fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+                lineHeight: 1.72,
+                color: 'oklch(0.75 0.010 52)',
+              }}
             >
               Plataforma SaaS para constructoras, interventorías y firmas eléctricas
               colombianas. Del contrato al acta de liquidación — cronogramas, presupuestos,
@@ -262,7 +268,24 @@ export default function Hero() {
                 Solicitar Demo Gratis
                 <ArrowRight size={16} />
               </a>
-              <a href="#funcionalidades" className="ob-btn ob-btn-ghost ob-btn-lg">
+              {/* Ghost button hardcoded for dark background */}
+              <a
+                href="#funcionalidades"
+                className="ob-btn ob-btn-lg"
+                style={{
+                  background: 'transparent',
+                  color: 'oklch(0.93 0.006 52)',
+                  border: '1px solid oklch(0.93 0.006 52 / 0.32)',
+                }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'oklch(0.93 0.006 52 / 0.1)'
+                  ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'oklch(0.93 0.006 52 / 0.55)'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                  ;(e.currentTarget as HTMLAnchorElement).style.borderColor = 'oklch(0.93 0.006 52 / 0.32)'
+                }}
+              >
                 Ver funcionalidades
               </a>
             </motion.div>
@@ -271,14 +294,14 @@ export default function Hero() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.75 }}
+              transition={{ duration: 0.6, delay: 0.75 }}
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '1.5rem',
                 marginTop: '3rem',
                 paddingTop: '1.5rem',
-                borderTop: '1px solid oklch(0.93 0.007 52 / 0.12)',
+                borderTop: '1px solid oklch(0.93 0.006 52 / 0.14)',
               }}
             >
               {[
@@ -293,7 +316,7 @@ export default function Hero() {
                     alignItems: 'center',
                     gap: '0.4rem',
                     fontSize: '0.8125rem',
-                    color: 'var(--ob-text-2)',
+                    color: 'oklch(0.70 0.010 52)',
                   }}
                 >
                   <span style={{ color: 'var(--ob-accent)' }}>{item.icon}</span>

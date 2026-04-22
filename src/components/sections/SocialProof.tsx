@@ -63,18 +63,26 @@ export default function SocialProof() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {/* Icon placeholder — would be real logo in production */}
               <div
                 aria-hidden="true"
                 style={{
                   width: '28px',
                   height: '28px',
                   borderRadius: '6px',
-                  backgroundColor: 'var(--ob-surface-3)',
-                  border: '1px solid var(--ob-border)',
+                  backgroundColor: 'var(--ob-accent-bg)',
+                  border: '1px solid color-mix(in oklch, var(--ob-accent) 28%, transparent)',
                   flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--ob-font-display)',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  color: 'var(--ob-accent)',
                 }}
-              />
+              >
+                {name.charAt(0)}
+              </div>
               <span
                 style={{
                   fontFamily: 'var(--ob-font-display)',

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# hero source video — frames are extracted from this; no need to version it
+/public/hero-source.mp4
+
+# playwright test artifacts
+/playwright-report/
+/test-results/
