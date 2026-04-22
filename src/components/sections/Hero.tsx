@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import NextImage from 'next/image'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, Shield, Zap, HardHat } from 'lucide-react'
 
@@ -138,14 +139,13 @@ export default function Hero() {
       >
         {/* Background */}
         {useImageFallback ? (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: 'url(/assets/hero-bg.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
+          <NextImage
+            src="/assets/hero-bg.jpg"
+            alt="Vista aérea de obra de construcción colombiana al atardecer"
+            fill
+            priority
+            sizes="100vw"
+            style={{ objectFit: 'cover', objectPosition: 'center' }}
           />
         ) : (
           <canvas
